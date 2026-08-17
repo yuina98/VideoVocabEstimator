@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>视频词汇量估算</title>
+    <style>
+      body {
+        width: 320px;
+        margin: 0;
+        padding: 16px;
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        color: #0f0f0f;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 12px;
+      }
+      label {
+        display: block;
+        color: #606060;
+        margin-bottom: 4px;
+      }
+      select {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+      }
+      input[type="number"] {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        box-sizing: border-box;
+      }
+      .hint {
+        color: #909090;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+      #status {
+        margin-top: 10px;
+        color: #065fd4;
+        min-height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>视频词汇量估算 · 设置</h1>
+    <label for="dict">词频词典</label>
+    <select id="dict"></select>
+    <label for="vocab">我的词汇量（词）</label>
+    <input type="number" id="vocab" min="0" step="100" placeholder="如 3500" />
+    <div class="hint">在视频页的词汇量曲线图上会标出你对应的位置</div>
+    <div id="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>

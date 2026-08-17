@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Video Vocab Estimator",
+  "version": "0.1.0",
+  "description": "通过视频字幕与词频词典比对，估算观看该视频所需的词汇量。当前支持 YouTube。",
+  "permissions": ["storage", "webRequest"],
+  "host_permissions": ["https://*.youtube.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Video Vocab Estimator",
+    "default_popup": "popup/popup.html"
+  },
+  "minimum_chrome_version": "102"
+}
