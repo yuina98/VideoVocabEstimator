@@ -54,12 +54,23 @@ function main(): void {
     panel.setUserVocab(typeof value === 'number' && value > 0 ? value : null);
   }
 
-  /** 视频加载新元数据时重新应用目标语速（播放器加载新视频会重置倍速） */
+  /** 主播放器 video 元素（侧边栏悬浮预览等次要 video 不匹配） */
+  function currentVideoEl(): HTMLVideoElement | null {
+    return (
+      document.querySelector<HTMLVideoElement>('video.html5-main-video') ??
+      document.querySelector<HTMLVideoElement>('video')
+    );
+  }
+
+  /**
+   * 换视频后播放器会重置倍速，此时重新应用目标倍速。
+   * 仅在"新视频加载"时生效，不干预播放过程中的手动调速。
+   */
   function onVideoLoadedMetadata(): void {
     void applyTargetWpm();
   }
 
-  /** 给 video 挂载恢复监听；同一元素只挂一次 */
+  /** 给 video 挂载换视频监听；同一元素只挂一次 */
   function ensureVideoWatched(video: HTMLVideoElement): void {
     if (watchedVideo === video) return;
     watchedVideo?.removeEventListener('loadedmetadata', onVideoLoadedMetadata);
@@ -86,7 +97,7 @@ function main(): void {
 
   /** 按目标语速设置当前视频播放倍速；未设置目标时恢复 1x */
   async function applyTargetWpm(): Promise<void> {
-    const video = document.querySelector<HTMLVideoElement>('video');
+    const video = currentVideoEl();
     if (!video) return;
     ensureVideoWatched(video);
     if (currentTargetWpm == null) {
@@ -96,7 +107,10 @@ function main(): void {
     const natural = await ensureNaturalRate();
     if (natural == null) return;
     const rate = rateForWpm(currentTargetWpm, natural);
-    if (rate != null) video.playbackRate = rate;
+    if (rate != null) {
+      console.debug(`[vve] 应用语速: ${currentTargetWpm} WPM → ${rate.toFixed(2)}x（自然语速 ${natural.toFixed(0)} WPM）`);
+      video.playbackRate = rate;
+    }
   }
 
   /** 读取并设置目标语速，然后应用到当前视频 */
