@@ -1,8 +1,9 @@
-import { USER_VOCAB_KEY } from '../core/settings.js';
+import { USER_VOCAB_KEY, WPM_KEY } from '../core/settings.js';
 import type { ExtensionRequest, ExtensionResponse } from '../core/messages.js';
 
 const select = document.getElementById('dict') as HTMLSelectElement;
 const vocabInput = document.getElementById('vocab') as HTMLInputElement;
+const wpmInput = document.getElementById('wpm') as HTMLInputElement;
 const status = document.getElementById('status') as HTMLElement;
 
 function send(msg: ExtensionRequest): Promise<ExtensionResponse> {
@@ -30,6 +31,22 @@ async function onVocabChange(): Promise<void> {
   status.textContent = '已保存';
 }
 
+async function onWpmChange(): Promise<void> {
+  const raw = wpmInput.value.trim();
+  if (!raw) {
+    await chrome.storage.local.remove(WPM_KEY);
+    status.textContent = '已清除';
+    return;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    status.textContent = '请输入正数';
+    return;
+  }
+  await chrome.storage.local.set({ [WPM_KEY]: Math.round(n) });
+  status.textContent = '已保存';
+}
+
 async function init(): Promise<void> {
   const state = await send({ type: 'GET_STATE' });
   if (state.type !== 'STATE') {
@@ -51,6 +68,11 @@ async function init(): Promise<void> {
   const v = stored[USER_VOCAB_KEY];
   if (typeof v === 'number' && v > 0) vocabInput.value = String(v);
   vocabInput.addEventListener('change', () => void onVocabChange());
+
+  const storedWpm = await chrome.storage.local.get(WPM_KEY);
+  const w = storedWpm[WPM_KEY];
+  if (typeof w === 'number' && w > 0) wpmInput.value = String(w);
+  wpmInput.addEventListener('change', () => void onWpmChange());
 }
 
 void init();
