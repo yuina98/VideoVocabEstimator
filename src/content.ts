@@ -3,6 +3,7 @@ import { dictionaryRegistry, DEFAULT_DICTIONARY_ID } from './core/dictionary.js'
 import { lemmatizer } from './core/lemmatizer.js';
 import { SLOW_ONLY_KEY, USER_VOCAB_KEY, WPM_KEY } from './core/settings.js';
 import { naturalWpm, rateForWpm } from './core/playback.js';
+import type { ExtensionRequest, ExtensionResponse } from './core/messages.js';
 import type { SubtitleTrack } from './core/types.js';
 import { siteAdapterRegistry } from './adapters/registry.js';
 import { registerYoutubeAdapter } from './adapters/youtube.js';
@@ -97,13 +98,24 @@ function main(): void {
     }
   }
 
+  /** 通过后台以 MAIN world 调用播放器 API 设置倍速（复用 YouTube 原生变速，保证音质） */
+  async function setPlayerRate(rate: number): Promise<void> {
+    const res = (await chrome.runtime.sendMessage({
+      type: 'SET_PLAYBACK_RATE',
+      rate,
+    } satisfies ExtensionRequest)) as ExtensionResponse;
+    if (res.type === 'ERROR') {
+      console.warn('[vve] 设置播放速度失败:', res.message);
+    }
+  }
+
   /** 按目标语速设置当前视频播放倍速；未设置目标时恢复 1x */
   async function applyTargetWpm(): Promise<void> {
     const video = currentVideoEl();
     if (!video) return;
     ensureVideoWatched(video);
     if (currentTargetWpm == null) {
-      video.playbackRate = 1;
+      await setPlayerRate(1);
       return;
     }
     const natural = await ensureNaturalRate();
@@ -111,7 +123,7 @@ function main(): void {
     const rate = rateForWpm(currentTargetWpm, natural, slowOnlyWpm);
     if (rate != null) {
       console.debug(`[vve] 应用语速: ${currentTargetWpm} WPM → ${rate.toFixed(2)}x（自然语速 ${natural.toFixed(0)} WPM）`);
-      video.playbackRate = rate;
+      await setPlayerRate(rate);
     }
   }
 

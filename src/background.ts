@@ -62,7 +62,10 @@ async function fetchSubtitleText(url: string): Promise<{ status: number; text: s
   return { status: res.status, text: await res.text() };
 }
 
-async function handleMessage(msg: ExtensionRequest): Promise<ExtensionResponse> {
+async function handleMessage(
+  msg: ExtensionRequest,
+  sender: chrome.runtime.MessageSender,
+): Promise<ExtensionResponse> {
   switch (msg.type) {
     case 'GET_STATE': {
       const stored = await chrome.storage.local.get(dictionaryRegistry.storageKey);
@@ -85,12 +88,36 @@ async function handleMessage(msg: ExtensionRequest): Promise<ExtensionResponse> 
       const url = potUrlCache.get(msg.videoId) ?? null;
       return { type: 'POT_URL_RESULT', url };
     }
+    case 'SET_PLAYBACK_RATE': {
+      if (!sender.tab?.id) {
+        return { type: 'ERROR', message: '未找到标签页' };
+      }
+      try {
+        // 在页面主世界调用播放器 API，复用 YouTube 自带的时间伸缩算法，保证变速音质
+        await chrome.scripting.executeScript({
+          target: { tabId: sender.tab.id },
+          world: 'MAIN',
+          func: (rate: number) => {
+            const player = document.getElementById('movie_player') as unknown as {
+              setPlaybackRate?: (r: number) => void;
+            };
+            if (player && typeof player.setPlaybackRate === 'function') {
+              player.setPlaybackRate(rate);
+            }
+          },
+          args: [msg.rate],
+        });
+        return { type: 'RATE_SET' };
+      } catch (err) {
+        return { type: 'ERROR', message: `设置播放速度失败: ${err instanceof Error ? err.message : String(err)}` };
+      }
+    }
     default:
       return { type: 'ERROR', message: '未知消息类型' };
   }
 }
 
-chrome.runtime.onMessage.addListener((msg: ExtensionRequest, _sender, sendResponse) => {
-  void handleMessage(msg).then(sendResponse);
+chrome.runtime.onMessage.addListener((msg: ExtensionRequest, sender, sendResponse) => {
+  void handleMessage(msg, sender).then(sendResponse);
   return true; // 异步响应
 });

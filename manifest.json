@@ -3,7 +3,7 @@
   "name": "Video Vocab Estimator",
   "version": "0.1.0",
   "description": "通过视频字幕与词频词典比对，估算观看该视频所需的词汇量。当前支持 YouTube。",
-  "permissions": ["storage", "webRequest"],
+  "permissions": ["storage", "webRequest", "scripting"],
   "host_permissions": ["https://*.youtube.com/*"],
   "content_scripts": [
     {
