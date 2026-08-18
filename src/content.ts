@@ -1,7 +1,7 @@
 import { analyzeSubtitle } from './core/analyzer.js';
 import { dictionaryRegistry, DEFAULT_DICTIONARY_ID } from './core/dictionary.js';
 import { lemmatizer } from './core/lemmatizer.js';
-import { USER_VOCAB_KEY, WPM_KEY } from './core/settings.js';
+import { SLOW_ONLY_KEY, USER_VOCAB_KEY, WPM_KEY } from './core/settings.js';
 import { naturalWpm, rateForWpm } from './core/playback.js';
 import type { SubtitleTrack } from './core/types.js';
 import { siteAdapterRegistry } from './adapters/registry.js';
@@ -25,6 +25,8 @@ function main(): void {
   let currentTracks: SubtitleTrack[] = [];
   /** 用户设置的目标语速(WPM)；null 表示不控制播放速度 */
   let currentTargetWpm: number | null = null;
+  /** 是否只减速不加速（目标语速高于自然语速时不调整） */
+  let slowOnlyWpm = false;
   /** 已挂载倍速恢复监听的 video 元素 */
   let watchedVideo: HTMLVideoElement | null = null;
 
@@ -106,7 +108,7 @@ function main(): void {
     }
     const natural = await ensureNaturalRate();
     if (natural == null) return;
-    const rate = rateForWpm(currentTargetWpm, natural);
+    const rate = rateForWpm(currentTargetWpm, natural, slowOnlyWpm);
     if (rate != null) {
       console.debug(`[vve] 应用语速: ${currentTargetWpm} WPM → ${rate.toFixed(2)}x（自然语速 ${natural.toFixed(0)} WPM）`);
       video.playbackRate = rate;
@@ -119,9 +121,16 @@ function main(): void {
     void applyTargetWpm();
   }
 
+  /** 读取"只减速不加速"开关并重新应用 */
+  function readSlowOnly(value: unknown): void {
+    slowOnlyWpm = value === true;
+    void applyTargetWpm();
+  }
+
   // 初始读取用户词汇量与目标语速，并监听 popup 修改实时生效
   void chrome.storage.local.get(USER_VOCAB_KEY).then((data) => readUserVocab(data[USER_VOCAB_KEY]));
   void chrome.storage.local.get(WPM_KEY).then((data) => readTargetWpm(data[WPM_KEY]));
+  void chrome.storage.local.get(SLOW_ONLY_KEY).then((data) => readSlowOnly(data[SLOW_ONLY_KEY]));
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     if (changes[USER_VOCAB_KEY]) {
@@ -129,6 +138,9 @@ function main(): void {
     }
     if (changes[WPM_KEY]) {
       readTargetWpm(changes[WPM_KEY].newValue);
+    }
+    if (changes[SLOW_ONLY_KEY]) {
+      readSlowOnly(changes[SLOW_ONLY_KEY].newValue);
     }
   });
 

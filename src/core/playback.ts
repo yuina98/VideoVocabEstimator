@@ -26,11 +26,13 @@ export function naturalWpm(cues: SubtitleCue[]): number {
  * 目标 WPM -> 播放倍速；目标或自然语速无效、或计算出的倍速超出
  * [MIN_PLAYBACK_RATE, MAX_PLAYBACK_RATE] 范围时返回 null（不调整速度，
  * 避免字幕异常）。
+ * slowOnly 为 true 时只减速不加速：需要加速（rate >= 1）同样返回 null。
  */
-export function rateForWpm(targetWpm: number, natural: number): number | null {
+export function rateForWpm(targetWpm: number, natural: number, slowOnly = false): number | null {
   if (!Number.isFinite(targetWpm) || targetWpm <= 0) return null;
   if (!Number.isFinite(natural) || natural <= 0) return null;
   const rate = targetWpm / natural;
+  if (slowOnly && rate >= 1) return null;
   if (rate < MIN_PLAYBACK_RATE || rate > MAX_PLAYBACK_RATE) return null;
   return rate;
 }

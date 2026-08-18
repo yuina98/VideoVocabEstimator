@@ -1,9 +1,10 @@
-import { USER_VOCAB_KEY, WPM_KEY } from '../core/settings.js';
+import { SLOW_ONLY_KEY, USER_VOCAB_KEY, WPM_KEY } from '../core/settings.js';
 import type { ExtensionRequest, ExtensionResponse } from '../core/messages.js';
 
 const select = document.getElementById('dict') as HTMLSelectElement;
 const vocabInput = document.getElementById('vocab') as HTMLInputElement;
 const wpmInput = document.getElementById('wpm') as HTMLInputElement;
+const slowOnlyInput = document.getElementById('slow-only') as HTMLInputElement;
 const status = document.getElementById('status') as HTMLElement;
 
 function send(msg: ExtensionRequest): Promise<ExtensionResponse> {
@@ -47,6 +48,10 @@ async function onWpmChange(): Promise<void> {
   status.textContent = '已保存';
 }
 
+async function onSlowOnlyChange(): Promise<void> {
+  await chrome.storage.local.set({ [SLOW_ONLY_KEY]: slowOnlyInput.checked });
+}
+
 async function init(): Promise<void> {
   const state = await send({ type: 'GET_STATE' });
   if (state.type !== 'STATE') {
@@ -73,6 +78,10 @@ async function init(): Promise<void> {
   const w = storedWpm[WPM_KEY];
   if (typeof w === 'number' && w > 0) wpmInput.value = String(w);
   wpmInput.addEventListener('change', () => void onWpmChange());
+
+  const storedSlowOnly = await chrome.storage.local.get(SLOW_ONLY_KEY);
+  slowOnlyInput.checked = storedSlowOnly[SLOW_ONLY_KEY] === true;
+  slowOnlyInput.addEventListener('change', () => void onSlowOnlyChange());
 }
 
 void init();
